@@ -1,0 +1,77 @@
+version: '3.9'
+
+services:
+    nextcloud_db:
+        image: mariadb:latest
+        container_name: nextcloud_db
+        restart: always
+        volumes:
+            - ${HOME}/Docker/Nextcloud/db:/var/lib/mysql
+        env_file:
+            - db.env
+        deploy:
+            resources:
+                limits:
+                    cpus: '2'
+                    memory: 4G
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            interval: 30s
+            timeout: 10s
+            retries: 6
+        networks:
+            - nextcloud-net
+
+    nextcloud:
+        image: nextcloud:latest
+        container_name: nextcloud
+        restart: always
+        volumes:
+            - ${HOME}/Docker/Nextcloud/html:/var/www/html
+        environment:
+            #- NEXTCLOUD_ADMIN_USER=admin # Activate before installing to already install with a standard user
+            #- NEXTCLOUD_ADMIN_PASSWORD=PASSWORD_ADMIN # Activate before installing to already install with a default password
+            - MYSQL_HOST=nextcloud_db
+            - REDIS_HOST=redis
+            - REDIS_HOST_PORT=6379
+            - REDIS_HOST_PASSWORD=changeme
+        env_file:
+            - db.env
+        
+        depends_on:
+            - nextcloud_db
+            - redis
+        deploy:
+            resources:
+                limits:
+                    cpus: '3'
+                    memory: 7G
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
+            interval: 30s
+            timeout: 10s
+            retries: 6
+        networks:
+            - nextcloud-net
+            - npm-net
+
+    redis:
+        image: redis:alpine
+        container_name: redis
+        restart: unless-stopped
+        command: redis-server --requirepass changeme --appendonly yes
+        volumes:
+            - ${HOME}/Docker/Nextcloud/redis:/data
+        deploy:
+            resources:
+                limits:
+                    cpus: '1'
+                    memory: 2G
+        networks:
+            - nextcloud-net
+
+networks:
+    nextcloud-net:
+        name: nextcloud-net
+    npm-net:
+        external: true

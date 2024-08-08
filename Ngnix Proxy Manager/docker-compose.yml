@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  npm-proxy:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: npm-proxy
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ${HOME}/Docker/NPM/data:/data
+      - ${HOME}/Docker/NPM/letsencrypt:/etc/letsencrypt
+    restart: unless-stopped
+    networks:
+      - npm-net
+
+networks:
+  npm-net:
+    name: npm-net 
